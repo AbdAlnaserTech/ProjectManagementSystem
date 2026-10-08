@@ -38,7 +38,13 @@ The UTC date convention, case-insensitive email policy, string lengths, bounded 
 
 ## Delivery
 
-Branch: feature/phase-2-database. Implementation is being committed and pushed for review. Exact remote verification and PR creation result will be recorded below after the operation. GitHub REST API probe currently returns `Forbidden` through the network proxy; native Git uses its separate platform HTTPS authentication route.
+Branch: `feature/phase-2-database`. Implementation commit `1b2c0702312ebef692d6a0848580c4183df6c84f` was pushed successfully; native `git ls-remote` confirmed the exact remote SHA and main at `2e6bff456d6521ae5d94153957d45374edb859b2`. This final report/PR-body update is committed and pushed afterward; the final HEAD is reported in the completion response.
+
+PR creation was attempted with gh targeting main. Exact failure: `Post "https://api.github.com/graphql": Forbidden`. No PR was created and no merge occurred. This is a GitHub API network-route blocker, separate from working Git push authentication. The prepared review text is committed in docs/phase-2-pr.md.
+
+Required environment setting for an automatic retry: restricted Internet/network access → custom allowed domains → add `api.github.com`, preserving `westus.data.mcr.microsoft.com` and selected presets, then save/apply the policy. This additional domain is being saved in the configuration draft; it must be applied before retrying, and API authentication must still be verified afterward. No credential value was requested or printed, and proxy restrictions were not bypassed.
+
+Manual PR creation: https://github.com/AbdAlnaserTech/ProjectManagementSystem/compare/main...feature/phase-2-database?expand=1 . Target main, source feature/phase-2-database; paste docs/phase-2-pr.md and do not auto-merge.
 
 ## Boundary
 
