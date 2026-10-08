@@ -17,7 +17,7 @@ public class StartupTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
-    public async Task DomainApiIsNotImplementedInPhaseOne()
+    public async Task DomainApiRemainsUnimplemented()
     {
         var response = await _client.GetAsync("/api/v1/employees");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);

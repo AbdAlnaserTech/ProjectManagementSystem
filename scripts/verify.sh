@@ -5,4 +5,4 @@ source scripts/env.sh
 dotnet restore --locked-mode
 dotnet tool restore
 dotnet build --no-restore
-dotnet test --no-build --no-restore --logger 'trx;LogFileName=phase1.trx'
+python scripts/with-database.py dotnet test --no-build --no-restore --logger 'trx;LogFileName=verification.trx'

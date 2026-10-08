@@ -1,44 +1,45 @@
 # Project Management System
 
-Academic ASP.NET Core modular monolith. **Phase 1 scaffold only**: the host and development/test infrastructure exist; domain CRUD, SQL persistence, authentication and Swagger are not implemented yet. See [PLAN.md](PLAN.md) for the full phased checklist and proposed business rules. No specification PDF was supplied.
+Academic ASP.NET Core modular monolith. **Phases 1–2 only**: API host, SQL Server persistence model, initial EF migration and real-database integration tests. No CRUD endpoints, JWT or domain services are implemented. See [PLAN.md](PLAN.md), [database design](docs/database-design.md), [ERD](docs/erd.md), and [Phase 2 verification](docs/phase-2-results.md). The supplied text specification is the requirement source; no PDF was supplied.
 
-## Toolchain
+## Prerequisites
 
-- Linux x64 cloud environment; .NET 10 LTS SDK 10.0.401 (global.json).
-- SQL Server 2022 Developer, Docker/Compose for future relational integration tests.
-- Explicit package versions and lockfiles; EF Core SQL Server/design and JWT 10.0.12, FluentValidation 12.1.1, AutoMapper 16.2.0, Serilog, API versioning and Swagger dependencies are prepared, not yet wired up.
-- AutoMapper 16 licensing must be reviewed for academic eligibility before Phase 6; no license key is required for the current scaffold, which does not invoke mapping.
+Linux x64 cloud environment; .NET 10 LTS SDK 10.0.401; SQL Server 2022 Developer; Docker/Compose and Python 3 for local helper scripts. Explicit NuGet versions and lockfiles are committed. AutoMapper 16 academic license eligibility must be reviewed before later mapping implementation; mapping is not used yet.
 
-## Setup and verification
+## Setup, migration and verification
 
 ```bash
 cd /workspace/ProjectManagementSystem
 bash scripts/install.sh
+# Configure ignored .env securely with a strong local MSSQL_SA_PASSWORD first.
+docker compose up -d --wait --wait-timeout 180 sqlserver
+bash scripts/migrate.sh
 bash scripts/verify.sh
 bash scripts/start-api.sh
 ```
 
-The installation script uses workspace-local CLI state/caches, verifies the SDK SHA-512 against Microsoft's published release metadata, performs locked restore and builds. It is tailored to Linux x64; other developers may install the pinned SDK with their platform's supported installer. Source `scripts/env.sh` before manual dotnet commands in the cloud.
+Copy `.env.example` only if `.env` does not exist; choose a local-only strong SQL password and restrict file permissions. Never overwrite existing secrets or print their values. Alternatively provide `ConnectionStrings__DefaultConnection` securely for an existing SQL Server. No production connection string, password or JWT key is committed. The `.env` file is read by Compose and by the explicit database-command helper; ASP.NET does not load it automatically.
 
-In a second shell, `curl --fail http://127.0.0.1:5080/health/live` must return `Healthy`. This is process liveness only, not a database-readiness check. `/api/v1/*` domain endpoints do not exist in Phase 1. Two startup tests exercise the real ASP.NET host, including the phase boundary. Future domain and SQL transaction tests belong to later phases.
+`scripts/install.sh` checksum-verifies the pinned Linux x64 SDK, restores locked dependencies and EF tools, then builds. Source scripts/env.sh before manual dotnet commands in the cloud. Other platforms can use their supported installer for the pinned SDK. `scripts/migrate.sh` explicitly applies the EF migration; app startup never migrates automatically. Repeating migration update is safe. Named SQL volume data is preserved by docker compose down; removing volumes discards data.
 
-## SQL Server development prerequisite
+`scripts/verify.sh` requires real SQL Server and executes locked restore, build and all tests. It fails if credentials/server are missing; no database tests are silently skipped. The test principal needs create/drop-database rights on a disposable test server. Each test owns a uniquely named PmsTests_<guid> database and drops only that database. To use a separate test server, securely set PMS_TEST_CONNECTION; otherwise the helper uses the configured/local server with an isolated database per test.
 
-The API does not connect to SQL in Phase 1. To prepare the database on a machine with registry access:
+The local SQL service binds to loopback port 1433. The local helper uses encrypted transport with TrustServerCertificate=True for the development self-signed server; production connections must validate server certificates and use suitable least-privilege identities. Restricted cloud network settings must retain `westus.data.mcr.microsoft.com` for SQL image blobs, in addition to the package-manager preset. Registry downloads retain TLS/checksum verification.
 
-1. Copy `.env.example` to ignored `.env`; set a unique local strong `MSSQL_SA_PASSWORD` (SQL password policy: at least 8 characters and 3 character categories).
-2. `docker compose up -d sqlserver`
-3. `docker compose ps` — wait for healthy. The health check executes `SELECT 1`, not just a port probe.
-4. Configure `ConnectionStrings__DefaultConnection` securely once persistence is added in Phase 2. Do not commit production connection strings or passwords.
+## Runtime and development
 
-The container listens only on loopback. `sqlcmd -C` trusts the local development server's self-signed certificate; use validated server certificates in production. Developer edition is for development/testing only. The named volume survives container restarts. `docker compose down` stops services without deleting data; do not remove volumes unless intentionally discarding local data.
+The default API script serves only operational liveness and future controllers at port 5080. `curl --fail http://127.0.0.1:5080/health/live` returns Healthy. This does not probe SQL readiness. `/api/v1/*` domain routes are intentionally absent. Runtime DbContext reads ConnectionStrings:DefaultConnection via application configuration; design-time tools require ConnectionStrings__DefaultConnection. Configuration is checked when the context is resolved; the host can serve liveness without persistence credentials.
 
-The registry blob domain `westus.data.mcr.microsoft.com` is now reachable through the authorized proxy route. Image pull, healthy container startup and authenticated SELECT 1 succeeded. Preserve that custom domain in restricted environment network settings. See [validation results](docs/phase-1-results.md).
+For manual commands with local credentials without displaying them:
 
-## Secrets and later configuration
+```bash
+source scripts/env.sh
+python scripts/with-database.py dotnet ef migrations has-pending-model-changes --project src/ProjectManagement.Api
+python scripts/with-database.py dotnet run --no-launch-profile --project src/ProjectManagement.Api --urls http://127.0.0.1:5080
+```
 
-No passwords, JWT keys or production database strings are committed. Authentication is not enabled yet. Future phases will read `Auth__Username`, `Auth__Password`, `Jwt__SigningKey`, issuer/audience and `ConnectionStrings__DefaultConnection` from secure configuration. `appsettings.Local.json` and `.env*` are ignored; .NET does not automatically read `.env` or appsettings.Local.json (Compose reads `.env`; explicit application loading would be implemented later if needed).
+Schema supports employees, projects and ProjectTask with required FKs, case-insensitive unique email, constrained enum integers, ordered project dates and documented deletion behavior. Dates are datetime2(7) with a UTC convention; timezone/request validation remains future work. No database models are exposed through HTTP.
 
-## Delivery status
+## Delivery boundaries
 
-Work is on `setup/phase-1`. An empty local `main` baseline was safely connected to Phase 1 history without rewriting existing commits. Pushes of both branches were denied with HTTP 403; remote main is still absent and no PR was created. Authorize GitHub repository write access before retrying publication. Phase 2 starts only after user approval. Postman scenarios, ERD, EF migrations, OpenAPI and Serilog/sample logs are intentionally pending their planned phases.
+Phase 1 is merged into main. Phase 2 works on feature/phase-2-database. Check docs/phase-2-results.md for actual checks and delivery status. Do not start Phase 3 or merge the PR automatically. JWT, validation/mapping, Serilog, API versioning/Swagger and Postman scenarios remain planned phases.

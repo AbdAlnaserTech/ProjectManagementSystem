@@ -1,2 +1,9 @@
-# Documentation roadmap
-Phase 1: PLAN.md, README.md and phase-1-results.md. ERD, migrations, business-rule documentation and generated OpenAPI will be added in their planned phases after approval. No domain or security features are claimed complete.
+# Documentation
+
+- PLAN.md (repository root): phase checklist and remaining decisions.
+- phase-1-results.md: historical Phase 1 validation.
+- database-design.md: implemented Phase 2 decisions and operation instructions.
+- erd.md: complete three-entity schema and relationships.
+- phase-2-results.md: current persistence verification and delivery status.
+
+OpenAPI, API business-rule documentation and Postman scenarios remain future phases.
