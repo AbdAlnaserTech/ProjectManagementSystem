@@ -32,7 +32,7 @@ These are proposals, not implemented requirements; reconcile with the PDF if sup
 - [x] Pin toolchain/packages, prepare local EF tooling and frozen restore.
 - [x] Add repeatable setup, startup, verification instructions and ignored local secrets.
 - [x] Verify clean build, executed startup tests and live HTTP request (see docs/phase-1-results.md).
-- [ ] Start SQL Server and execute SELECT 1 (blocked by registry egress; see results).
+- [x] Start SQL Server and execute SELECT 1 (registry access verified; see final results).
 - [x] Save cloud setup/start instructions and report exact blockers.
 - [x] Stop for approval before Phase 2.
 
@@ -81,4 +81,4 @@ These are proposals, not implemented requirements; reconcile with the PDF if sup
 - [ ] Reviewable commits and PR where supported; never auto-merge.
 
 ## GitHub delivery constraint
-The repository is unborn and remote `main` is absent. A GitHub PR needs a published base branch. Do not fabricate a base commit or push/merge automatically as a workaround. Local Phase 1 commit is reviewable; arrange base-branch publication before creating a PR.
+The remote repository is empty. During user-authorized final review, an empty local main baseline was created and connected to existing Phase 1 history without rewriting commits. Native Git pushes of main and setup/phase-1 were denied with HTTP 403. A GitHub PR needs both branches published; authorize repository write access before retrying. No PR or automatic merge occurred. See docs/phase-1-results.md.

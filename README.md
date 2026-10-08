@@ -33,7 +33,7 @@ The API does not connect to SQL in Phase 1. To prepare the database on a machine
 
 The container listens only on loopback. `sqlcmd -C` trusts the local development server's self-signed certificate; use validated server certificates in production. Developer edition is for development/testing only. The named volume survives container restarts. `docker compose down` stops services without deleting data; do not remove volumes unless intentionally discarding local data.
 
-The current environment cannot download registry blobs from `westus.data.mcr.microsoft.com` (HTTP proxy 403). That destination was added to the cloud configuration draft; it must be saved/applied before retrying. See [validation results](docs/phase-1-results.md).
+The registry blob domain `westus.data.mcr.microsoft.com` is now reachable through the authorized proxy route. Image pull, healthy container startup and authenticated SELECT 1 succeeded. Preserve that custom domain in restricted environment network settings. See [validation results](docs/phase-1-results.md).
 
 ## Secrets and later configuration
 
@@ -41,4 +41,4 @@ No passwords, JWT keys or production database strings are committed. Authenticat
 
 ## Delivery status
 
-Work is on `setup/phase-1`. Remote main is absent in this previously empty repository. No push, merge or PR was performed. A PR requires a published base branch. Phase 2 starts only after user approval. Postman scenarios, ERD, EF migrations, OpenAPI and Serilog/sample logs are intentionally pending their planned phases.
+Work is on `setup/phase-1`. An empty local `main` baseline was safely connected to Phase 1 history without rewriting existing commits. Pushes of both branches were denied with HTTP 403; remote main is still absent and no PR was created. Authorize GitHub repository write access before retrying publication. Phase 2 starts only after user approval. Postman scenarios, ERD, EF migrations, OpenAPI and Serilog/sample logs are intentionally pending their planned phases.

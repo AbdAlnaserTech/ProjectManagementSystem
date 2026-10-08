@@ -1,24 +1,29 @@
-# Phase 1 validation and delivery
+# Phase 1 final review — 2026-10-08
 
-## Verified in the current instance
-- Empty checkout inspected, native Git read access succeeds; remote has no advertised refs and no main branch.
-- Isolated branch: setup/phase-1. No worktree or overwritten existing source.
-- .NET SDK 10.0.401 installed under /workspace/.dotnet; downloaded archive SHA-512 matched Microsoft release metadata.
-- NuGet restore and frozen-lockfile restore succeeded. Audit rejected AutoMapper 14.0.0 (GHSA-rvv3-g6hj-g44x); switched to 16.2.0 and restored with no reported advisory warnings. Audit remains enabled and warnings are errors.
-- Local dotnet-ef 10.0.12 tool restored and version command executed successfully.
-- scripts/install.sh executed successfully again with the installed SDK; it does not rewrite source or lockfiles.
-- Build succeeded: 0 warnings, 0 errors.
-- Tests executed: 2 passed, 0 failed, 0 skipped (xUnit startup tests using WebApplicationFactory). TRX generated at tests/ProjectManagement.Tests/TestResults/phase1.trx, ignored by Git.
-- scripts/start-api.sh launched the real host; HTTP GET /health/live returned 200 and Healthy.
-- Shell scripts passed bash syntax checks. Docker Compose configuration validation passed without creating services.
+## Repository and GitHub
+- Branch: `setup/phase-1`. Required PLAN.md, README.md and this report exist and are committed; ignored build/test outputs and local secrets are excluded.
+- Original Phase 1 commits `1842d86` and `071e7c9` were preserved without rewriting.
+- Read-only `git ls-remote --symref origin` succeeded and returned no refs both before and after push attempts. The remote repository remains empty; no remote HEAD/default branch can be verified. Direct GitHub API access is blocked by the proxy, so no API-derived default-branch claim is made.
+- Created local `main` at `32d2a54` as an empty baseline. Merged it into Phase 1 with `--allow-unrelated-histories` (`ca0023f`), retaining existing commits and making main an ancestor so the full scaffold is reviewable. No force push, reset, deletion or repository recreation occurred.
+- Attempted normal pushes of `main` and `setup/phase-1`. Both failed with HTTP 403: `Permission to AbdAlnaserTech/ProjectManagementSystem.git denied to AbdAlnaserTech.` Native Git authentication supports reads but currently denies writes.
+- GitHub CLI also reported its injected token invalid; no token was printed or extracted. No PR was created because neither branch exists remotely. The final documentation commit has not been retried against the unchanged denied permission.
+- Remaining delivery action: authorize repository write access for the cloud GitHub connection, then push main and setup/phase-1 and verify remote SHA values. Confirm remote default branch is main through GitHub settings; create a PR targeting main. Do not merge automatically. Local-only commit restoration in a fresh cloud task remains unverified.
 
-## Blocked / not executed
-- Docker daemon 28.4.0 and Compose v2.40.3 are available, with adequate machine resources.
-- docker pull mcr.microsoft.com/mssql/server:2022-latest failed with Forbidden while downloading image configuration/layers. Diagnosis: registry manifest works, config blob redirects to westus.data.mcr.microsoft.com, proxy rejects that destination with HTTP 403.
-- The destination was saved in the environment network draft, preserving the package-manager preset. Draft saving does not apply runtime policy. Save/apply settings and retry docker compose up -d sqlserver, then verify SQL SELECT 1 via its health check.
-- SQL startup, database SELECT 1, migrations and transactional tests have not run. Database-dependent setup remains incomplete; process liveness does not prove database readiness.
-- No PDF was supplied. Proposed business rules, endpoint designs, date boundaries, deletion policy and AutoMapper license eligibility need review before their implementation phases.
-- Remote main does not exist, so a PR cannot currently be opened against that base. No push/merge has been attempted. Local-only commits require preservation: cloud fresh-task restoration has not been verified and is not reliable for local-only commits. Publish/preserve through a supported reviewed workflow; do not reset or automatically push to hide the limitation.
+## Verification rerun
+- .NET SDK 10.0.401, runtime 10.0.12; original SDK archive SHA-512 matched Microsoft release metadata.
+- `bash scripts/verify.sh`: `dotnet restore --locked-mode`, `dotnet tool restore`, `dotnet build --no-restore`, `dotnet test --no-build --no-restore` all succeeded.
+- Build: **0 warnings, 0 errors**. NuGet audit and warning-as-error policy remain enabled. AutoMapper is pinned to 16.2.0 after the initial 14.0.0 advisory diagnosis.
+- Tests: **2 passed, 0 failed, 0 skipped**, duration 196 ms. Current-run TRX: tests/ProjectManagement.Tests/TestResults/phase1.trx (ignored).
+- Live API request: GET /health/live returned HTTP 200 and `Healthy`. The API liveness endpoint does not probe SQL Server.
 
-## Scope boundary
-Phase 2 has not started. Entities, migrations, domain controllers, JWT, validation, mapping, Serilog, versioned OpenAPI, ERD, Postman scenarios and SQL integration tests remain planned deliverables. All files in this formerly empty checkout are newly created; no existing tracked files were modified.
+## SQL Server: blocker resolved
+- Initial pull failed because config/layer blobs redirected from mcr.microsoft.com to westus.data.mcr.microsoft.com and the network proxy denied that destination.
+- Required setting: environment settings → Internet/network access → restricted access → custom allowed domains: add `westus.data.mcr.microsoft.com` (hostname only), preserving existing custom domains and the package-manager preset. Save/apply the setting; draft saving alone is insufficient. This domain was already present in the saved draft.
+- During this review, an actual redirected registry config-blob GET succeeded with HTTP 200, proving runtime access through the authorized proxy route. Only then was Docker pull retried. No proxy bypass or verification disabling was used.
+- Pull succeeded with layer checksum verification. Image digest: `sha256:4402d880dd4c34bfa7d8705e56a86cd6c88da80a1f6bbbe741f999e76264a090`.
+- Created a random local-only SQL password in ignored, mode-0600 `.env`; no existing configuration was overwritten and no password was displayed or committed.
+- `docker compose up -d --wait --wait-timeout 180 sqlserver` succeeded. Container: projectmanagementsystem-sqlserver-1, healthy, bound to 127.0.0.1:1433. Named database volume retained.
+- Explicit authenticated sqlcmd query returned `Ready = 1`, SQL Server version **16.0.4295.3**. SQL startup and SELECT 1 are verified. The local self-signed server certificate is trusted with sqlcmd -C as documented for development; download TLS and artifact verification were preserved.
+
+## Scope and pending decisions
+Phase 1 development infrastructure is verified in the current instance. Phase 2 has not started. SQL migrations and transaction/domain tests were not run because domain persistence is not yet implemented. Entities, JWT, validation/mapping, Serilog, versioned OpenAPI, ERD and Postman scenarios remain assigned to later phases. No PDF was supplied; PLAN.md contains proposed business rules for review. AutoMapper licensing/academic eligibility must be reviewed before mapping implementation. GitHub delivery and fresh-task restoration remain unverified; no full synchronization or publication claim is made.
