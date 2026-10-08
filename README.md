@@ -1,6 +1,6 @@
 # Project Management System
 
-Academic ASP.NET Core modular monolith. **Phases 1–2 only**: API host, SQL Server persistence model, initial EF migration and real-database integration tests. No CRUD endpoints, JWT or domain services are implemented. See [PLAN.md](PLAN.md), [database design](docs/database-design.md), [ERD](docs/erd.md), and [Phase 2 verification](docs/phase-2-results.md). The supplied text specification is the requirement source; no PDF was supplied.
+Academic ASP.NET Core modular monolith. **Phases 1–3**: API host, SQL Server persistence, initial EF migration and complete Employee/Project/Task CRUD APIs with real-database HTTP integration tests. JWT and advanced operations are not implemented. See [PLAN.md](PLAN.md), [database design](docs/database-design.md), [ERD](docs/erd.md), and [CRUD contract](docs/crud-api.md) and [Phase 3 verification](docs/phase-3-results.md). The supplied text specification is the requirement source; no PDF was supplied.
 
 ## Prerequisites
 
@@ -28,7 +28,7 @@ The local SQL service binds to loopback port 1433. The local helper uses encrypt
 
 ## Runtime and development
 
-The default API script serves only operational liveness and future controllers at port 5080. `curl --fail http://127.0.0.1:5080/health/live` returns Healthy. This does not probe SQL readiness. `/api/v1/*` domain routes are intentionally absent. Runtime DbContext reads ConnectionStrings:DefaultConnection via application configuration; design-time tools require ConnectionStrings__DefaultConnection. Configuration is checked when the context is resolved; the host can serve liveness without persistence credentials.
+The API script injects configured/local SQL credentials securely through scripts/with-database.py and serves CRUD plus operational liveness at port 5080. Set PMS_API_URLS to use another binding. `curl --fail http://127.0.0.1:5080/health/live` returns Healthy. This does not probe SQL readiness. CRUD routes are `/api/v1/employees`, `/api/v1/projects` and `/api/v1/tasks`, with GET/POST on collections and GET/PUT/DELETE on /{id}. See docs/crud-api.md for request fields, errors, dates and filters. Runtime DbContext reads ConnectionStrings:DefaultConnection via application configuration; design-time tools require ConnectionStrings__DefaultConnection. Configuration is checked when the context is resolved; the host can serve liveness without persistence credentials.
 
 For manual commands with local credentials without displaying them:
 
@@ -38,8 +38,34 @@ python scripts/with-database.py dotnet ef migrations has-pending-model-changes -
 python scripts/with-database.py dotnet run --no-launch-profile --project src/ProjectManagement.Api --urls http://127.0.0.1:5080
 ```
 
-Schema supports employees, projects and ProjectTask with required FKs, case-insensitive unique email, constrained enum integers, ordered project dates and documented deletion behavior. Dates are datetime2(7) with a UTC convention; timezone/request validation remains future work. No database models are exposed through HTTP.
+Schema supports employees, projects and ProjectTask with required FKs, case-insensitive unique email, constrained enum integers, ordered project dates and documented deletion behavior. Dates are datetime2(7); API inputs must carry an explicit UTC offset or Z and are normalized/output as UTC. No database models are exposed through HTTP.
+
+## API examples
+
+GET /api/v1/employees?search=alice&isActive=true&page=1&pageSize=20
+
+POST /api/v1/employees:
+
+```json
+{"fullName":"Alice","email":"alice@example.test","isActive":true}
+```
+
+POST /api/v1/projects (replace managerId with a real active employee):
+
+```json
+{"name":"Release","startDate":"2026-01-01T00:00:00Z","endDate":"2026-12-31T00:00:00Z","status":"Planning","managerId":1}
+```
+
+POST /api/v1/tasks (replace both IDs with real resources):
+
+```json
+{"title":"Design","priority":"High","status":"Pending","dueDate":"2026-06-01T00:00:00Z","projectId":1,"assignedEmployeeId":1}
+```
+
+GET /api/v1/tasks?projectId=1&assignedEmployeeId=1&status=Pending&priority=High&page=1&pageSize=20
+
+Collection results contain items/page/pageSize/totalCount/totalPages. POST returns 201 with Location, PUT 200, DELETE 204. PUT supplies a full replacement body. Invalid input returns 400, missing resources 404, duplicate/restricted deletion 409. Writes are unauthenticated in Phase 3; JWT access control starts only after Phase 4 approval.
 
 ## Delivery boundaries
 
-Phase 1 is merged into main. Phase 2 works on feature/phase-2-database. Check docs/phase-2-results.md for actual checks and delivery status. Do not start Phase 3 or merge the PR automatically. JWT, validation/mapping, Serilog, API versioning/Swagger and Postman scenarios remain planned phases.
+Phases 1 and 2 were merged into main. Phase 3 is on feature/phase-3-crud; see docs/phase-3-results.md for exact checks/delivery. No database migration was changed. Phase 4, advanced transactions, FluentValidation/AutoMapper integration, Serilog, API versioning/Swagger and Postman scenarios remain later work. Do not start Phase 4 or merge the PR automatically.
