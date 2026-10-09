@@ -17,9 +17,9 @@ public class StartupTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
-    public async Task DomainApiRemainsUnimplemented()
+    public async Task UnknownApiRouteReturnsNotFound()
     {
-        var response = await _client.GetAsync("/api/v1/employees");
+        var response = await _client.GetAsync("/api/v1/unknown");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }
